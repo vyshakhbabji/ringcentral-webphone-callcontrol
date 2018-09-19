@@ -22,6 +22,14 @@ $(function() {
     var remoteVideoElement =  document.getElementById('remoteVideo');
     var localVideoElement  = document.getElementById('localVideo');
 
+    var recordingId ="";
+    var recordingStatus =false;
+
+
+    localStorage.setItem('webPhoneSessionID', '');
+    localStorage.setItem('webPhonePartyID', '');
+
+
     /**
      * @param {jQuery|HTMLElement} $tpl
      * @return {jQuery|HTMLElement}
@@ -102,6 +110,9 @@ $(function() {
         localStorage.setItem('webPhonePassword', password || '');
         localStorage.setItem('webPhoneLogLevel', logLevel || 0);
 
+        localStorage.setItem('webPhoneSessionID', '');
+        localStorage.setItem('webPhonePartyID', '');
+
         return platform.get('/restapi/v1.0/account/~/extension/~')
             .then(function(res) {
 
@@ -181,10 +192,12 @@ $(function() {
                 .catch(function(e) { console.error('Accept failed', e.stack || e); });
         });
 
+        //uses webrtc sdk
         $modal.find('.decline').on('click', function() {
             session.reject();
         });
 
+        //uses webrtc sdk
         $modal.find('.toVoicemail').on('click', function() {
             session.toVoicemail();
         });
@@ -192,12 +205,20 @@ $(function() {
         $modal.find('.forward-form').on('submit', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            session.forward($modal.find('input[name=forward]').val().trim())
-                .then(function() {
-                    console.log('Forwarded');
-                    $modal.modal('hide');
+
+            return platform.get('/restapi/v1.0/account/~/extension/~/presence?detailedTelephonyState=true')
+                .then(function(res) {
+                    telSessionId  =  res.json().activeCalls[0].telephonySessionId;
+                    console.log(telSessionId);
+                    partyId = res.json().activeCalls[0].partyId;
+                    platform.post('/restapi/v1.0/account/~/telephony/sessions/' + telSessionId + '/parties/' + partyId + '/forward', {
+                        "phoneNumber": $modal.find('input[name=forward]').val().trim()
+                    });
                 })
-                .catch(function(e) { console.error('Forward failed', e.stack || e); });
+                .catch(function(e) {
+                    console.error('Error in main promise chain');
+                    console.error(e.stack || e);
+                });
         });
 
         $modal.find('.reply-form').on('submit', function(e) {
@@ -259,28 +280,100 @@ $(function() {
         });
 
         $modal.find('.mute').on('click', function() {
-            session.mute();
+            return platform.get('/restapi/v1.0/account/~/extension/~/presence?detailedTelephonyState=true')
+                .then(function(res) {
+                    telSessionId  =  res.json().activeCalls[0].telephonySessionId;
+                    console.log(telSessionId);
+                    partyId = res.json().activeCalls[0].partyId;
+                    console.error(recordingId);
+                    platform.send({method: 'PATCH', url: '/restapi/v1.0/account/~/telephony/sessions/' + telSessionId + '/parties/' + partyId +'', body:'{\"muted\" : true}'
+                    }).then(
+
+                    );
+                })
+                .catch(function(e) {
+                    console.error('Error in main promise chain');
+                    console.error(e.stack || e);
+                });
         });
 
         $modal.find('.unmute').on('click', function() {
-            session.unmute();
+            return platform.get('/restapi/v1.0/account/~/extension/~/presence?detailedTelephonyState=true')
+                .then(function(res) {
+                    telSessionId  =  res.json().activeCalls[0].telephonySessionId;
+                    console.log(telSessionId);
+                    partyId = res.json().activeCalls[0].partyId;
+                    console.error(recordingId);
+                    platform.send({method: 'PATCH', url: '/restapi/v1.0/account/~/telephony/sessions/' + telSessionId + '/parties/' + partyId +'', body:'{\"muted\" : false}'
+                    }).then(
+
+                    );
+                })
+                .catch(function(e) {
+                    console.error('Error in main promise chain');
+                    console.error(e.stack || e);
+                });
         });
 
         $modal.find('.hold').on('click', function() {
-            session.hold().then(function() { console.log('Holding'); }).catch(function(e) { console.error('Holding failed', e.stack || e); });
+            return platform.get('/restapi/v1.0/account/~/extension/~/presence?detailedTelephonyState=true')
+                .then(function(res) {
+                    telSessionId  =  res.json().activeCalls[0].telephonySessionId;
+                    console.log(telSessionId);
+                    partyId = res.json().activeCalls[0].partyId;
+                    platform.post('/restapi/v1.0/account/~/telephony/sessions/' + telSessionId + '/parties/' + partyId + '/hold', '');
+                }).then(function() { console.log('Holding'); })
+                .catch(function(e) { console.error('Holding failed', e.stack || e); });
         });
 
         $modal.find('.unhold').on('click', function() {
-            session.unhold().then(function() { console.log('UnHolding'); }).catch(function(e) { console.error('UnHolding failed', e.stack || e); });
+            return platform.get('/restapi/v1.0/account/~/extension/~/presence?detailedTelephonyState=true')
+                .then(function(res) {
+                    telSessionId  =  res.json().activeCalls[0].telephonySessionId;
+                    console.log(telSessionId);
+                    partyId = res.json().activeCalls[0].partyId;
+                    platform.post('/restapi/v1.0/account/~/telephony/sessions/' + telSessionId + '/parties/' + partyId + '/unhold', '');
+                })
+                .catch(function(e) { console.error('UnHolding failed', e.stack || e); });
         });
+
+
         $modal.find('.startRecord').on('click', function() {
-            session.startRecord().then(function() { console.log('Recording Started'); }).catch(function(e) { console.error('Recording Start failed', e.stack || e); });
+            return platform.get('/restapi/v1.0/account/~/extension/~/presence?detailedTelephonyState=true')
+                .then(function(res) {
+                    telSessionId  =  res.json().activeCalls[0].telephonySessionId;
+                    console.log(telSessionId);
+                    partyId = res.json().activeCalls[0].partyId;
+                    platform.post('/restapi/v1.0/account/~/telephony/sessions/' + telSessionId + '/parties/' + partyId + '/recordings', '').then(
+                        function(res){
+                            recordingId =  res.json().id;
+                            recordingStatus= res.json().active;
+                        }
+                    );
+                })
+                .then(function() { console.log('Recording Started'); }).catch(function(e) { console.error('Recording Start failed', e.stack || e); });
+
         });
 
         $modal.find('.stopRecord').on('click', function() {
-            session.stopRecord().then(function() { console.log('Recording Stopped'); }).catch(function(e) { console.error('Recording Stop failed', e.stack || e); });
+            return platform.get('/restapi/v1.0/account/~/extension/~/presence?detailedTelephonyState=true')
+                .then(function(res) {
+                    telSessionId  =  res.json().activeCalls[0].telephonySessionId;
+                    console.log(telSessionId);
+                    partyId = res.json().activeCalls[0].partyId;
+                    console.error(recordingId);
+                    platform.send({method: 'PATCH', url: '/restapi/v1.0/account/~/telephony/sessions/' + telSessionId + '/parties/' + partyId + '/recordings/'+ recordingId +'', body:'{\"active\" : false}'
+                    }).then(
+
+                    );
+                })
+                .catch(function(e) {
+                    console.error('Error in main promise chain');
+                    console.error(e.stack || e);
+                });
         });
 
+        //uses webrtc sdk
         $modal.find('.park').on('click', function() {
             session.park().then(function() { console.log('Parked'); }).catch(function(e) { console.error('Park failed', e.stack || e); });
         });
@@ -288,9 +381,23 @@ $(function() {
         $modal.find('.transfer-form').on('submit', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            session.transfer($transfer.val().trim()).then(function() { console.log('Transferred'); }).catch(function(e) { console.error('Transfer failed', e.stack || e); });
+            return platform.get('/restapi/v1.0/account/~/extension/~/presence?detailedTelephonyState=true')
+                .then(function(res) {
+                    telSessionId  =  res.json().activeCalls[0].telephonySessionId;
+                    console.log(telSessionId);
+                    partyId = res.json().activeCalls[0].partyId;
+
+                    platform.post('/restapi/v1.0/account/~/telephony/sessions/' + telSessionId + '/parties/' + partyId + '/transfer', {
+                        "phoneNumber": $modal.find('input[name=transfer]').val().trim()
+                    });
+                })
+                .catch(function(e) {
+                    console.error('Error in main promise chain');
+                    console.error(e.stack || e);
+                });
         });
 
+        //uses webrtc sdk
         $modal.find('.transfer-form button.warm').on('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -308,6 +415,7 @@ $(function() {
 
         });
 
+        //uses webrtc sdk
         $modal.find('.flip-form').on('submit', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -315,6 +423,7 @@ $(function() {
             $flip.val('');
         });
 
+        //uses webrtc sdk
         $modal.find('.dtmf-form').on('submit', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -323,7 +432,16 @@ $(function() {
         });
 
         $modal.find('.hangup').on('click', function() {
-            session.terminate();
+            return platform.get('/restapi/v1.0/account/~/extension/~/presence?detailedTelephonyState=true')
+                .then(function(res) {
+                    telSessionId  =  res.json().activeCalls[0].telephonySessionId;
+                    console.log(telSessionId);
+                    platform.send({method: 'DELETE', url: '/restapi/v1.0/account/~/telephony/sessions/' + telSessionId})
+                })
+                .catch(function(e) {
+                    console.error('Error in main promise chain');
+                    console.error(e.stack || e);
+                });
         });
 
         session.on('accepted', function() { console.log('Event: Accepted'); });
@@ -363,6 +481,7 @@ $(function() {
         });
     }
 
+    //uses webrtc sdk to make call
     function makeCall(number, homeCountryId) {
 
         homeCountryId = homeCountryId
@@ -378,6 +497,7 @@ $(function() {
 
     }
 
+    //uses webrtc sdk to make call
     function makeCallForm() {
 
         var $form = cloneTemplate($callTemplate);

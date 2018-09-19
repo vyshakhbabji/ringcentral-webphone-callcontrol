@@ -169,7 +169,7 @@
         var sessionDescriptionHandlerFactoryOptions = options.sessionDescriptionHandlerFactoryOptions || {
             peerConnectionOptions: {
                 iceCheckingTimeout: this.sipInfo.iceCheckingTimeout || this.sipInfo.iceGatheringTimeout || 500,
-                    rtcConfiguration: {
+                rtcConfiguration: {
                     rtcpMuxPolicy: 'negotiate'
                 }
             },
@@ -218,7 +218,7 @@
             domain: this.sipInfo.domain,
             autostart: false,
             register: true,
-            userAgentString: userAgentString,           
+            userAgentString: userAgentString,
             sessionDescriptionHandlerFactoryOptions: sessionDescriptionHandlerFactoryOptions,
             sessionDescriptionHandlerFactory : sessionDescriptionHandlerFactory
         };
@@ -232,8 +232,8 @@
         this.userAgent.media = {};
 
         if (options.media && (options.media.remote && options.media.local)){
-                this.userAgent.media.remote = options.media.remote ;
-                this.userAgent.media.local = options.media.local;
+            this.userAgent.media.remote = options.media.remote ;
+            this.userAgent.media.local = options.media.local;
         }
         else
             this.userAgent.media = null;
